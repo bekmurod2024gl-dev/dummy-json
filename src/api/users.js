@@ -1,57 +1,59 @@
 import client from "./client";
 
-// GET - barcha userlarni olish
+// GET
 export const getUsers = async () => {
-  const res = await client.get("/users");
-  return res.data;
+  const response = await client.get("/users");
+  return response.data;
 };
 
-// SEARCH - user qidirish
+// SEARCH
 export const searchUsers = async (query) => {
-  const res = await client.get("/users/search", {
-    params: {
-      q: query,
-    },
-  });
-
-  return res.data;
+  const response = await client.get(
+    `/users/search?q=${query}`
+  );
+  return response.data;
 };
 
-// RANDOM - tasodifiy user olish
+// RANDOM
 export const getRandomUser = async () => {
   const randomId =
-    Math.floor(Math.random() * 208) + 1;
+    Math.floor(Math.random() * 100) + 1;
 
-  const res = await client.get(`/users/${randomId}`);
+  const response = await client.get(
+    `/users/${randomId}`
+  );
 
-  return res.data;
+  return response.data;
 };
 
-// POST - yangi user yaratish
-export const createUser = async (user) => {
-  const res = await client.post(
+// CREATE
+export const createUser = async (userData) => {
+  const response = await client.post(
     "/users/add",
-    user
+    userData
   );
 
-  return res.data;
+  return response.data;
 };
 
-// PUT - userni yangilash
-export const updateUser = async (id, user) => {
-  const res = await client.put(
+// UPDATE
+export const updateUser = async (
+  id,
+  userData
+) => {
+  const response = await client.put(
     `/users/${id}`,
-    user
+    userData
   );
 
-  return res.data;
+  return response.data;
 };
 
-// DELETE - userni o'chirish
+// DELETE
 export const deleteUser = async (id) => {
-  const res = await client.delete(
+  const response = await client.delete(
     `/users/${id}`
   );
 
-  return res.data;
+  return response.data;
 };
