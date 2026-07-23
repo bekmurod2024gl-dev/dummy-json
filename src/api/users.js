@@ -37,19 +37,18 @@ export const createUser = async (userData) => {
 };
 
 // UPDATE
-export const updateUser = async (
-  id,
-  userData
-) => {
+export const updateUser = async (id, userData) => {
+  console.log("ID:", id);
+  console.log("URL:", `https://dummyjson.com/users/${id}`);
+  console.log("DATA:", userData);
+
   const response = await client.put(
     `/users/${id}`,
     userData
   );
 
   return response.data;
-};
-
-// DELETE
+};// DELETE
 export const deleteUser = async (id) => {
   const response = await client.delete(
     `/users/${id}`
