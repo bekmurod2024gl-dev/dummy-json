@@ -38,8 +38,10 @@ function Products({
     setLoading(false);
   };
 
+  // Sahifa ochilganda: HAM categories, HAM products yuklanadi
   useEffect(() => {
     loadCategories();
+    loadProducts();
   }, []);
 
   const handleSearch = async () => {

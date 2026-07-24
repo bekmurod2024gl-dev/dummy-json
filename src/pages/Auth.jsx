@@ -1,106 +1,236 @@
 import { useState } from "react";
+import { login, register } from "../api/auth";
+
+// 🔐 Maxsus admin login (dummyjson orqali emas, lokal tekshiruv)
+const SUPER_ADMIN_USERNAME = "bobomurod";
+const SUPER_ADMIN_PASSWORD = "jumaboyevAdmin1234";
 
 function Auth({ onLoginSuccess }) {
   const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const validateEmail = (email) => {
-    return /^[^\s@]+@gmail\.com$/.test(email);
-  };
-
-  const validatePassword = (password) => {
-    const digitCount = (password.match(/[0-9]/g) || []).length;
-    const letterCount = (password.match(/[a-zA-Z]/g) || []).length;
-    return digitCount >= 4 && letterCount >= 4;
-  };
+  const MAX_ATTEMPTS = 3;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setMessage("");
 
-    if (!validateEmail(email)) {
-      setMessage("Email nimadur@gmail.com formatida bo'lishi kerak");
-      return;
-    }
-
-    if (!validatePassword(password)) {
-      setMessage("Parolda kamida 4 ta raqam va 4 ta harf bo'lishi kerak");
+    if (!username || !password) {
+      setMessage("Username va passwordni kiriting");
       return;
     }
 
     setLoading(true);
 
-    // Backend hali tayyor emas, shuning uchun DummyJSON o'rniga
-    // vaqtincha mock (soxta) muvaffaqiyatli javob qaytariladi.
-    setTimeout(() => {
-      const fakeData = {
-        username: email,
-        message: mode === "login" ? "Kirish muvaffaqiyatli (mock)" : "Ro'yxatdan o'tish muvaffaqiyatli (mock)",
-      };
+    try {
+      // =========================
+      // 🔐 LOGIN
+      // =========================
+      if (mode === "login") {
+        // =========================
+        // 👑 SUPER ADMIN — API'siz, lokal tekshiruv
+        // =========================
+        if (
+          username === SUPER_ADMIN_USERNAME &&
+          password === SUPER_ADMIN_PASSWORD
+        ) {
+          localStorage.removeItem("loginAttempts");
+          localStorage.removeItem("loginBlocked");
 
-      console.log("Mock javob:", fakeData);
+          onLoginSuccess({
+            id: 0,
+            username: SUPER_ADMIN_USERNAME,
+            firstName: "Bobomurod",
+            lastName: "Jumaboyev",
+            email: "bobomurod@admin.local",
+            image: "",
+            isAdmin: true,
+          });
 
-      setMessage(JSON.stringify(fakeData));
-      setLoading(false);
+          setLoading(false);
+          return;
+        }
 
-      if (onLoginSuccess) {
-        onLoginSuccess();
+        const attempts = Number(
+          localStorage.getItem("loginAttempts") || 0
+        );
+
+        const loginBlocked =
+          localStorage.getItem("loginBlocked") === "true";
+
+        // 🔒 3 martadan keyin bloklash
+        if (loginBlocked) {
+          throw new Error(
+            "Login bloklangan. 3 marta noto'g'ri urinish qilindi."
+          );
+        }
+
+        // 👇 DUMMYJSON API ORQALI LOGIN
+        const data = await login({
+          username,
+          password,
+        });
+
+        // Login muvaffaqiyatli bo'lsa urinishlarni tozalash
+        localStorage.removeItem("loginAttempts");
+
+        // 👤 ODDIY USER (dummyjson orqali kirgan)
+        onLoginSuccess({
+          ...data,
+          isAdmin: false,
+        });
       }
-    }, 600);
 
-  
+      // =========================
+      // 📝 REGISTER
+      // =========================
+      else {
+        const data = await register({
+          username,
+          password,
+        });
+
+        console.log("Register:", data);
+
+        setMessage(
+          "Ro'yxatdan o'tish muvaffaqiyatli!"
+        );
+      }
+    } catch (error) {
+      console.error(error);
+
+      // ❌ LOGIN XATOSI
+      if (mode === "login") {
+        const attempts = Number(
+          localStorage.getItem("loginAttempts") || 0
+        );
+
+        const newAttempts = attempts + 1;
+
+        localStorage.setItem(
+          "loginAttempts",
+          String(newAttempts)
+        );
+
+        if (newAttempts >= MAX_ATTEMPTS) {
+          localStorage.setItem(
+            "loginBlocked",
+            "true"
+          );
+
+          setMessage(
+            "3 marta noto'g'ri login qilindi. Login bloklandi."
+          );
+        } else {
+          setMessage(
+            `Username yoki password noto'g'ri. Qolgan urinishlar: ${
+              MAX_ATTEMPTS - newAttempts
+            }`
+          );
+        }
+      } else {
+        setMessage(
+          error.response?.data?.message ||
+            error.message ||
+            "Xatolik yuz berdi"
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="auth-full-page">
       <div className="auth-container">
-        <h1 className="auth-title">DummyJSON App</h1>
+        <h1 className="auth-title">
+          DummyJSON App
+        </h1>
+
         <div className="auth-box">
           <div className="auth-tabs">
             <button
               type="button"
-              className={`auth-tab ${mode === "login" ? "active" : ""}`}
-              onClick={() => setMode("login")}
+              className={`auth-tab ${
+                mode === "login"
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() => {
+                setMode("login");
+                setMessage("");
+              }}
             >
               Kirish
             </button>
+
             <button
               type="button"
-              className={`auth-tab ${mode === "register" ? "active" : ""}`}
-              onClick={() => setMode("register")}
+              className={`auth-tab ${
+                mode === "register"
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() => {
+                setMode("register");
+                setMessage("");
+              }}
             >
               Ro'yxatdan o'tish
             </button>
           </div>
-          <form onSubmit={handleSubmit} className="auth-form">
+
+          <form
+            onSubmit={handleSubmit}
+            className="auth-form"
+          >
             <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Gmail: nimadur@gmail.com"
+              value={username}
+              onChange={(e) =>
+                setUsername(e.target.value)
+              }
+              placeholder="Username"
               disabled={loading}
               className="auth-input"
             />
+
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Parol: 4 raqam + 4 harf (Masalan: test1234)"
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              placeholder="Password"
               disabled={loading}
               className="auth-input"
             />
-            <button type="submit" disabled={loading} className="auth-submit">
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="auth-submit"
+            >
               {loading ? (
                 <>
                   <span className="spinner"></span>
                   Yuklanmoqda...
                 </>
-              ) : mode === "login" ? "Kirish" : "Ro'yxatdan o'tish"}
+              ) : mode === "login" ? (
+                "Kirish"
+              ) : (
+                "Ro'yxatdan o'tish"
+              )}
             </button>
           </form>
-          {message && <div className="auth-error">{message}</div>}
+
+          {message && (
+            <div className="auth-error">
+              {message}
+            </div>
+          )}
         </div>
       </div>
     </div>
